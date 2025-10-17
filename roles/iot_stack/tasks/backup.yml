@@ -1,0 +1,28 @@
+---
+- name: Create backup directory
+  file:
+    path: /home/ubuntu/backups
+    state: directory
+    mode: '0755'
+
+- name: Create backup script
+  copy:
+    dest: /home/ubuntu/backups/pg_backup.sh
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      BACKUP_DIR="/home/ubuntu/backups"
+      DB_NAME="iot_db"
+      USER="admin"
+      PGPASSWORD="admin123"
+      DATE=$(date +\%Y-\%m-\%d_\%H-\%M)
+      docker exec timescaledb pg_dump -U $USER $DB_NAME > $BACKUP_DIR/backup_$DATE.sql
+      find $BACKUP_DIR -type f -mtime +7 -delete
+
+- name: Schedule daily backup at 02:00 AM
+  cron:
+    name: "TimescaleDB daily backup"
+    user: ubuntu
+    job: "/home/ubuntu/backups/pg_backup.sh > /home/ubuntu/backups/backup.log 2>&1"
+    minute: "0"
+    hour: "2"

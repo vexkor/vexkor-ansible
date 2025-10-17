@@ -1,0 +1,8 @@
+---
+- name: Configure Vexkor IoT Server
+  hosts: vexkor
+  become: yes
+
+  roles:
+    - docker
+    - iot_stack

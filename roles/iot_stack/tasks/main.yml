@@ -1,0 +1,58 @@
+---
+- name: Create directory for IoT stack
+  file:
+    path: /home/ubuntu/iot_stack
+    state: directory
+    mode: '0755'
+
+- name: Copy docker-compose.yml to instance
+  copy:
+    dest: /home/ubuntu/iot_stack/docker-compose.yml
+    content: |
+      version: '3.8'
+      services:
+        timescaledb:
+          image: timescale/timescaledb:latest-pg16
+          container_name: timescaledb
+          environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_PASSWORD=admin123
+            - POSTGRES_DB=iot_db
+          ports:
+            - "5432:5432"
+          volumes:
+            - timescale_data:/var/lib/postgresql/data
+          restart: always
+
+        nodered:
+          image: nodered/node-red:latest
+          container_name: nodered
+          ports:
+            - "1880:1880"
+          volumes:
+            - nodered_data:/data
+          depends_on:
+            - timescaledb
+          restart: always
+
+        grafana:
+          image: grafana/grafana:latest
+          container_name: grafana
+          ports:
+            - "3000:3000"
+          volumes:
+            - grafana_data:/var/lib/grafana
+          depends_on:
+            - timescaledb
+          restart: always
+
+      volumes:
+        timescale_data:
+        nodered_data:
+        grafana_data:
+
+- name: Start IoT stack with Docker Compose
+  shell: |
+    cd /home/ubuntu/iot_stack && docker compose up -d
+
+- import_tasks: backup.yml
